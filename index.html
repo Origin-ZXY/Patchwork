@@ -1,110 +1,64 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>拼布对决</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <main class="game-shell">
-      <header class="topbar">
-        <div>
-          <h1>拼布对决</h1>
-          <p id="statusText">蓝方先手，选择一块布料开始。</p>
-        </div>
-        <div class="score-strip" aria-label="比分">
-          <div class="score-pill blue">
-            <span>蓝方</span>
-            <strong id="blueScore">5</strong>
-          </div>
-          <div class="score-pill red">
-            <span>红方</span>
-            <strong id="redScore">5</strong>
-          </div>
-        </div>
-      </header>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172b32">
+  <meta name="description" content="选一块喜欢的布，留一点从容的时间。拼布对决，支持人机练习、同屏双人和开房联机。">
+  <title>拼布对决 · Patchwork</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="layout.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="拼布对决首页"><span class="brand-quilt" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>拼布对决<small>PATCHWORK</small></span></a>
+    <nav aria-label="游戏导航"><button class="nav-active" id="tableNav">游戏棋桌</button><button id="onlineBtn">联机大厅</button><button id="tutorialBtn">新手教学</button></nav>
+    <div class="header-right"><button class="outline-button" id="newGameBtn" aria-label="开始新局">新局</button><span class="connection-label" id="modeLabel"><i></i>人机练习</span><button class="header-help" id="rulesBtn" aria-label="玩法说明">?</button></div>
+  </header>
+  <main class="page">
 
-      <section class="online-panel">
-        <div class="online-status">
-          <h2>联机房间</h2>
-          <p id="onlineStatus">本地同屏模式</p>
+    <div class="game-layout">
+      <section class="table-main" aria-label="游戏棋桌">
+        <div class="table-surface">
+          <div class="table-topline"><span><i class="thread-dot"></i><span id="turnLabel">轮到你缝制</span></span><span class="table-code" id="tableCode">THE PATCHWORK TABLE · 01</span></div>
+          <div class="table-boards">
+            <section class="your-quilt" aria-label="当前操作拼布板">
+              <div class="player-heading"><div><span class="player-dot" id="mainDot"></span><h2 id="mainName">你的拼布</h2><span class="turn-tag" id="mainTag">行动中</span></div><span class="filled-label" id="mainFilled">已缝 0 / 81 格</span></div>
+              <div class="player-stats" id="mainStats"></div>
+              <div class="quilt-frame" id="mainFrame"><div class="quilt-corner tl"></div><div class="quilt-corner br"></div><div class="board-coordinates">A　 B　 C　 D　 E　 F　 G　 H　 I</div><div class="quilt-board" id="mainBoard" aria-label="你的9乘9拼布板"></div><div class="quilt-footer"><span>9 × 9 QUILT BOARD</span><span id="mainScore">预计得分 −157</span></div></div>
+              <div class="board-instruction" id="boardInstruction" aria-live="polite">从下方挑选一块布料，开始你的第一针。</div>
+            </section>
+            <section class="opponent-panel" aria-label="对手拼布">
+              <div class="player-heading section-label"><h2><span class="player-dot red"></span><span id="opponentName">缝纫师</span></h2><span class="opponent-type" id="opponentType">AI · 标准</span></div>
+              <div class="player-stats opponent-stats" id="opponentStats"></div>
+              <button class="quilt-frame opponent-board-button" id="viewOpponentBtn" type="button" aria-label="放大查看对手拼布板">
+                <div class="board-coordinates" aria-hidden="true">A　 B　 C　 D　 E　 F　 G　 H　 I</div>
+                <div class="mini-quilt" id="opponentBoard" aria-label="对手拼布板"></div>
+                <div class="quilt-footer opponent-foot"><span id="opponentFilled">0 / 81 格</span><span id="opponentScore">预计 −157 分</span></div>
+              </button>
+              <p class="opponent-board-hint">点击拼布板，可放大查看每一格</p>
+            </section>
+
+          </div>
         </div>
-        <div class="room-controls">
-          <button id="createRoomBtn" type="button">创建房间</button>
-          <input id="roomCodeInput" type="text" maxlength="8" placeholder="房间码" aria-label="房间码" />
-          <button id="joinRoomBtn" type="button">加入房间</button>
-          <button id="copyInviteBtn" type="button" disabled>复制邀请</button>
-        </div>
-        <p class="invite-link" id="inviteLink"></p>
+        <section class="time-area" aria-label="时间轴">
+              <div class="section-label time-heading"><h2>缝制时光</h2><div class="time-side-switch" role="group" aria-label="经典版棋盘外观"><button type="button" data-time-side="quilt" aria-pressed="true">拼布面</button><button type="button" data-time-side="plain" aria-pressed="false">素色面</button></div></div>
+              <div class="time-board-wrap"><button type="button" class="time-board-button" id="viewTimeBoardBtn" aria-label="放大查看经典版时间棋盘"><span id="timeBoard" class="time-board"></span></button><div class="track-caption"><span><i class="button-token small"></i>越过纽扣领取收入</span><span><i class="leather-token"></i>到达补丁先到先得</span></div></div>
+              <div class="bonus-tile" id="bonusTile"><span class="bonus-emblem">7<small>× 7</small></span><div><strong>完整一角的奖励</strong><p id="bonusText">率先铺满任意 7 × 7 区域，获得 7 分。</p></div><span class="bonus-points">+7</span></div>
+            </section>
+        <section class="draft-panel" aria-label="布料市场与操作"><div class="draft-heading"><div><h2 id="draftTitle">布料市场</h2><span id="marketCount">33 块待选</span></div><div class="market-browse-controls"><button id="marketPrevBtn" aria-label="查看前面的布料">←</button><button id="marketNextBtn" aria-label="查看后面的布料">→</button><button class="outline-button" id="viewMarketBtn">查看全部</button></div></div><p id="draftHint">前 3 块可以购买，后续布料可滑动查看费用和耗时。</p><div class="draft-content"><div class="patch-choices" id="patchChoices" tabindex="0" aria-label="按顺序排列的布料市场，可横向滚动查看"></div><div class="action-panel"><div class="placement-tools"><button id="rotateBtn" title="顺时针旋转（R）" aria-label="顺时针旋转布料"><span aria-hidden="true">↻</span> 旋转 <kbd>R</kbd></button><button id="flipBtn" title="镜像翻转（F）" aria-label="镜像翻转布料"><span aria-hidden="true">↔</span> 翻转 <kbd>F</kbd></button></div><button class="primary-button" id="placeBtn" disabled>先选一块布料</button><button class="advance-button" id="advanceBtn">前进，领取纽扣 <span id="advanceAmount">+1</span></button></div></div></section>
       </section>
+      <aside class="sidebar" aria-label="对局记录">
+        <button class="activity-panel" id="logBtn" aria-label="查看完整对局记录"><span class="section-label"><strong>针脚记录</strong><span>查看全部 ↗</span></span><span id="recentLog" class="recent-log"></span></button>
 
-      <section class="arena">
-        <aside class="player-panel active" id="bluePanel">
-          <div class="player-head">
-            <h2>蓝方</h2>
-            <span id="blueTurn">回合中</span>
-          </div>
-          <div class="stats">
-            <span>纽扣 <strong id="blueButtons">5</strong></span>
-            <span>时间 <strong id="blueTime">0</strong>/53</span>
-            <span>收入 <strong id="blueIncome">1</strong></span>
-            <span>7x7 <strong id="blueBonus">否</strong></span>
-          </div>
-          <div class="board" id="blueBoard" aria-label="蓝方拼布板"></div>
-        </aside>
-
-        <section class="center-panel">
-          <div class="track-wrap">
-            <div class="track-title">
-              <h2>时间轴</h2>
-              <button id="newGameBtn" type="button">新局</button>
-            </div>
-            <div class="track" id="timeTrack"></div>
-          </div>
-
-          <div class="draft-wrap">
-            <div class="draft-title">
-              <h2>布料市场</h2>
-              <div class="tool-row">
-                <button id="passBtn" type="button">前进拿纽扣</button>
-                <button id="rotateBtn" type="button" title="旋转">↻</button>
-                <button id="flipBtn" type="button" title="翻转">⇄</button>
-              </div>
-            </div>
-            <div class="patch-list" id="patchList"></div>
-          </div>
-
-          <div class="selected-card" id="selectedCard">
-            <h2>当前布料</h2>
-            <div class="selected-preview" id="selectedPreview"></div>
-            <p id="selectedMeta">请选择一块布料。</p>
-          </div>
-        </section>
-
-        <aside class="player-panel" id="redPanel">
-          <div class="player-head">
-            <h2>红方</h2>
-            <span id="redTurn">等待</span>
-          </div>
-          <div class="stats">
-            <span>纽扣 <strong id="redButtons">5</strong></span>
-            <span>时间 <strong id="redTime">0</strong>/53</span>
-            <span>收入 <strong id="redIncome">1</strong></span>
-            <span>7x7 <strong id="redBonus">否</strong></span>
-          </div>
-          <div class="board" id="redBoard" aria-label="红方拼布板"></div>
-        </aside>
-      </section>
-
-      <section class="log-panel">
-        <h2>战况</h2>
-        <ol id="logList"></ol>
-      </section>
-    </main>
-
-    <script src="config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="game.js"></script>
-  </body>
+      </aside>
+    </div>
+    <footer class="page-footer"><span><i class="save-dot"></i><span id="saveStatus">对局自动保存在此设备</span></span><span>选布 → 选位置 → 确认缝制<span class="keyboard-note">　·　R 旋转 / F 翻转 / Esc 取消</span></span></footer>
+  </main>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <section class="tutorial-bar" id="tutorialBar" hidden aria-live="polite"><span class="tutorial-number" id="tutorialNumber">01</span><div><strong id="tutorialTitle"></strong><p id="tutorialText"></p></div><button class="outline-button" id="exitTutorial">退出教学</button></section>
+  <dialog id="modal"><form method="dialog"><button class="dialog-close" aria-label="关闭弹窗">×</button></form><div id="modalContent"></div></dialog>
+  <script type="module" src="app.js"></script>
+</body>
 </html>

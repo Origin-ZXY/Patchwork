@@ -1,0 +1,13 @@
+{
+  "edition": "Classic Patchwork with the official 2017 leather-patch correction",
+  "finish": 53,
+  "incomeOnEntering": [5, 11, 17, 23, 29, 35, 41, 47, 53],
+  "leatherOnReaching": [26, 32, 38, 44, 50],
+  "note": "Both faces have identical rules. Income icons mark boundaries immediately before the listed spaces. The early first leather patch was moved later; the corrected sequence excludes 20 and includes 38.",
+  "sources": [
+    "https://www.lookout-spiele.de/upload/en_patchwork.html_Rules_Patchwork_EN.pdf",
+    "https://www.lookout-spiele.de/en/games/patchwork.html",
+    "https://www.lookout-spiele.de/upload/en_patchwork.html_UpdateSticker_Patchwork_De-EN.pdf",
+    "https://cdn.svc.asmodee.net/production-asmodeeca/uploads/image-converter/2022/01/EN-PATCHWORK-LAYOUT-1-1024x1024.webp"
+  ]
+}

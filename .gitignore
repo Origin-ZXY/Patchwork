@@ -1,0 +1,5 @@
+.patchwork-rooms/
+dist/
+node_modules/
+.DS_Store
+*.log
