@@ -1,0 +1,364 @@
+{
+  "edition": "Patchwork classic ordinary patches",
+  "sources": [
+    "https://github.com/CACppuccino/PatchworkGame/blob/master/src/comp1140/ass2/PatchworkGame.java",
+    "https://github.com/zayenz/cp-mod-ref-2019-patchwork/blob/master/code/src/patchwork/tiles.cpp",
+    "https://www.lookout-spiele.de/upload/en_patchwork.html_GalleryImage.jpg",
+    "https://www.lookout-spiele.de/upload/en_patchwork.html_GalleryImage_7.jpg"
+  ],
+  "note": "Reference IDs are from the Java component catalogue, not official names. Research data agrees on 32 patches; its 2x2-square typo is resolved by the publisher photo. Rows use # for occupied squares.",
+  "totals": {
+    "cells": 166,
+    "cost": 133,
+    "time": 107,
+    "income": 38
+  },
+  "patches": [
+    {
+      "classicId": "A",
+      "cost": 2,
+      "time": 1,
+      "income": 0,
+      "rows": [
+        "##"
+      ]
+    },
+    {
+      "classicId": "B",
+      "cost": 1,
+      "time": 3,
+      "income": 0,
+      "rows": [
+        ".#",
+        "##"
+      ]
+    },
+    {
+      "classicId": "C",
+      "cost": 3,
+      "time": 1,
+      "income": 0,
+      "rows": [
+        ".#",
+        "##"
+      ]
+    },
+    {
+      "classicId": "D",
+      "cost": 2,
+      "time": 2,
+      "income": 0,
+      "rows": [
+        "###"
+      ]
+    },
+    {
+      "classicId": "E",
+      "cost": 3,
+      "time": 2,
+      "income": 1,
+      "rows": [
+        ".##",
+        "##."
+      ]
+    },
+    {
+      "classicId": "F",
+      "cost": 2,
+      "time": 2,
+      "income": 0,
+      "rows": [
+        "###",
+        ".##"
+      ]
+    },
+    {
+      "classicId": "G",
+      "cost": 1,
+      "time": 4,
+      "income": 1,
+      "rows": [
+        ".#.",
+        ".#.",
+        "###",
+        ".#.",
+        ".#."
+      ]
+    },
+    {
+      "classicId": "H",
+      "cost": 0,
+      "time": 3,
+      "income": 1,
+      "rows": [
+        ".#..",
+        "####",
+        ".#.."
+      ]
+    },
+    {
+      "classicId": "I",
+      "cost": 6,
+      "time": 5,
+      "income": 2,
+      "rows": [
+        "##",
+        "##"
+      ]
+    },
+    {
+      "classicId": "J",
+      "cost": 4,
+      "time": 2,
+      "income": 0,
+      "rows": [
+        "###.",
+        ".###"
+      ]
+    },
+    {
+      "classicId": "K",
+      "cost": 2,
+      "time": 2,
+      "income": 0,
+      "rows": [
+        ".#.",
+        "###"
+      ]
+    },
+    {
+      "classicId": "L",
+      "cost": 1,
+      "time": 5,
+      "income": 1,
+      "rows": [
+        "#..#",
+        "####"
+      ]
+    },
+    {
+      "classicId": "M",
+      "cost": 3,
+      "time": 3,
+      "income": 1,
+      "rows": [
+        "####"
+      ]
+    },
+    {
+      "classicId": "N",
+      "cost": 7,
+      "time": 1,
+      "income": 1,
+      "rows": [
+        "#",
+        "#",
+        "#",
+        "#",
+        "#"
+      ]
+    },
+    {
+      "classicId": "O",
+      "cost": 3,
+      "time": 4,
+      "income": 1,
+      "rows": [
+        "####",
+        "..#."
+      ]
+    },
+    {
+      "classicId": "P",
+      "cost": 7,
+      "time": 4,
+      "income": 2,
+      "rows": [
+        "####",
+        ".##."
+      ]
+    },
+    {
+      "classicId": "Q",
+      "cost": 3,
+      "time": 6,
+      "income": 2,
+      "rows": [
+        ".##",
+        "##.",
+        ".##"
+      ]
+    },
+    {
+      "classicId": "R",
+      "cost": 2,
+      "time": 1,
+      "income": 0,
+      "rows": [
+        "..#.",
+        "####",
+        ".#.."
+      ]
+    },
+    {
+      "classicId": "S",
+      "cost": 4,
+      "time": 6,
+      "income": 2,
+      "rows": [
+        "..#",
+        "###"
+      ]
+    },
+    {
+      "classicId": "T",
+      "cost": 5,
+      "time": 4,
+      "income": 2,
+      "rows": [
+        ".#.",
+        "###",
+        ".#."
+      ]
+    },
+    {
+      "classicId": "U",
+      "cost": 2,
+      "time": 3,
+      "income": 0,
+      "rows": [
+        "###",
+        ".#.",
+        "###"
+      ]
+    },
+    {
+      "classicId": "V",
+      "cost": 5,
+      "time": 3,
+      "income": 1,
+      "rows": [
+        ".##.",
+        "####",
+        ".##."
+      ]
+    },
+    {
+      "classicId": "W",
+      "cost": 10,
+      "time": 3,
+      "income": 2,
+      "rows": [
+        "...#",
+        "####"
+      ]
+    },
+    {
+      "classicId": "X",
+      "cost": 5,
+      "time": 5,
+      "income": 2,
+      "rows": [
+        "..#",
+        "###",
+        "..#"
+      ]
+    },
+    {
+      "classicId": "Y",
+      "cost": 10,
+      "time": 5,
+      "income": 3,
+      "rows": [
+        "##..",
+        "####"
+      ]
+    },
+    {
+      "classicId": "Z",
+      "cost": 1,
+      "time": 2,
+      "income": 0,
+      "rows": [
+        "#...",
+        "####",
+        "...#"
+      ]
+    },
+    {
+      "classicId": "a",
+      "cost": 4,
+      "time": 2,
+      "income": 1,
+      "rows": [
+        "###",
+        "..#"
+      ]
+    },
+    {
+      "classicId": "b",
+      "cost": 7,
+      "time": 2,
+      "income": 2,
+      "rows": [
+        "...#",
+        "####",
+        "...#"
+      ]
+    },
+    {
+      "classicId": "c",
+      "cost": 10,
+      "time": 4,
+      "income": 3,
+      "rows": [
+        "##.",
+        ".##",
+        "..#"
+      ]
+    },
+    {
+      "classicId": "d",
+      "cost": 1,
+      "time": 2,
+      "income": 0,
+      "rows": [
+        "##",
+        ".#",
+        "##"
+      ]
+    },
+    {
+      "classicId": "e",
+      "cost": 2,
+      "time": 3,
+      "income": 1,
+      "rows": [
+        "..##",
+        "###."
+      ]
+    },
+    {
+      "classicId": "f",
+      "cost": 7,
+      "time": 6,
+      "income": 3,
+      "rows": [
+        ".#",
+        "##",
+        "#."
+      ]
+    },
+    {
+      "classicId": "g",
+      "cost": 8,
+      "time": 6,
+      "income": 3,
+      "rows": [
+        "..#",
+        "###",
+        "##."
+      ]
+    }
+  ]
+}
