@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RoomClient, hostedMultiplayerRedirect, HOSTED_MULTIPLAYER_URL } from '../room-client.js';
+import { RoomClient, hostedMultiplayerRedirect, HOSTED_MULTIPLAYER_URL, readInvitation, invitationURL } from '../room-client.js';
 import { GAME_VERSION, PATCH_SET_ID, TIME_BOARD_ID } from '../engine.js';
 
 const SESSION_KEY = 'patchwork-room-v2';
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
-const reply = (value, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => structuredClone(value) });
+const reply = (value, status = 200, headers = {}) => Response.json(structuredClone(value), { status, headers });
 const room = (code = 'AAAAAA', revision = 0) => ({ code, revision, status: 'playing', players: [{ name: '甲', connected: true }, { name: '乙', connected: true }], game: { version: GAME_VERSION, patchSet: PATCH_SET_ID, timeBoard: TIME_BOARD_ID, revision, current: 0, finished: false } });
 const credential = (snapshot, seat = 0) => ({ code: snapshot.code, token: `credential-${snapshot.code}-abcdefghijklmnop`, seat, room: snapshot });
 
@@ -51,7 +51,7 @@ function browser(t) {
   };
   globalThis.fetch = async (path, options = {}) => {
     const data = options.body ? JSON.parse(options.body) : undefined;
-    calls.push({ path, data });
+    calls.push({ path, data, headers: options.headers });
     if (path === '/api/health') return reply({ ok: true, transport: 'sse' });
     return environment.handler(path, data);
   };
@@ -99,7 +99,7 @@ test('refresh restores the same seat using sessionStorage and reconnects once', 
   const env = browser(t), snapshot = room('CCCCCC', 8), saved = credential(snapshot, 1);
   env.memory.set(SESSION_KEY, JSON.stringify({ code: saved.code, token: saved.token, seat: saved.seat }));
   env.handler = path => {
-    assert.equal(path, `/api/rooms/${saved.code}?token=${encodeURIComponent(saved.token)}`);
+    assert.equal(path, `/api/rooms/${saved.code}`);
     return reply(snapshot);
   };
   const client = env.client(); assert.equal(await client.restore(), true); await tick();
@@ -179,9 +179,39 @@ test('duplicate and older events preserve selection by avoiding redundant change
 test('join normalizes the room code and publishes the assigned guest seat', async t => {
   const env = browser(t), snapshot = room('HHHHHH', 1);
   env.handler = (path, data) => {
-    assert.equal(path, '/api/rooms/HHHHHH/join'); assert.equal(data.name, '朋友'); return reply(credential(snapshot, 1));
+    assert.equal(path, '/api/rooms/HHHHHH/join'); assert.equal(data.name, '朋友'); assert.equal(data.inviteKey, 'a'.repeat(48)); assert.equal(data.turnstileToken, 'verification-token'); return reply(credential(snapshot, 1));
   };
-  const client = env.client(); await client.join('  hhhhhh  ', '朋友');
+  const client = env.client(); await client.join('  hhhhhh  ', '朋友', 'a'.repeat(48), 'verification-token');
   assert.equal(client.session.seat, 1); assert.equal(client.room.code, 'HHHHHH');
   await assert.rejects(client.join('bad', '朋友'), /6 位房间码/);
+});
+
+test('safe invitations keep the join secret in a fragment and survive static-site routing', () => {
+  const inviteKey = 'b'.repeat(48), url = invitationURL('https://origin-zxy.github.io/Patchwork/?token=remove#old', 'AB2C3D', inviteKey);
+  assert.equal(new URL(url).search, '?room=AB2C3D'); assert.equal(new URL(url).hash, '#invite=' + inviteKey);
+  assert.deepEqual(readInvitation(url), { code: 'AB2C3D', inviteKey });
+  assert.deepEqual(readInvitation(inviteKey.toUpperCase()), { code: '', inviteKey });
+  const cloud = new URL(hostedMultiplayerRedirect(url)); assert.equal(cloud.hash, '#invite=' + inviteKey);
+  assert.equal(cloud.searchParams.get('token'), null);
+  assert.throws(() => invitationURL(HOSTED_MULTIPLAYER_URL, 'AB2C3D', 'bad'), /刷新房间/);
+});
+
+test('restored snapshots use bearer headers and preserve host invitation credentials', async t => {
+  const env = browser(t), snapshot = room('CCCCCC', 1), inviteKey = 'c'.repeat(48); snapshot.status = 'waiting'; snapshot.game = null; snapshot.inviteKey = inviteKey;
+  env.handler = () => reply(credential(snapshot));
+  const client = env.client(); await client.create('甲');
+  assert.equal(client.session.inviteKey, inviteKey); client.leave();
+  const saved = credential(snapshot); env.handler = () => reply(snapshot); env.memory.set(SESSION_KEY, JSON.stringify({ code: saved.code, token: saved.token, seat: 0 }));
+  assert.equal(await client.restore(), true);
+  const call = env.calls.find(value => value.path === '/api/rooms/CCCCCC');
+  assert.equal(call.headers.Authorization, 'Bearer ' + saved.token); assert.equal(call.path.includes('token='), false);
+  assert.equal(JSON.parse(env.memory.get(SESSION_KEY)).inviteKey, inviteKey);
+});
+
+test('rate-limited polling honors Retry-After instead of retrying every two seconds', async t => {
+  const env = browser(t), snapshot = room('CCCCCC');
+  env.handler = path => path === '/api/rooms' ? reply(credential(snapshot)) : reply({ message: '稍后重试' }, 429, { 'Retry-After': '60' });
+  const client = env.client(); await client.create('甲'); await tick();
+  const refresh = [...env.timers.values()][0]; await refresh(); const before = env.calls.length;
+  await refresh(); await refresh(); assert.equal(env.calls.length, before);
 });

@@ -8,14 +8,14 @@ import { createApp } from '../server/index.js';
 
 function pair(store = new RoomStore()) {
   const host = store.create({ name: '蓝线' });
-  const guest = store.join(host.code, { name: '红线' });
+  const guest = store.join(host.code, { name: '红线', inviteKey: host.room.inviteKey });
   return { store, host, guest };
 }
 
 test('two seats only, unique credentials, and no credential in snapshots', () => {
   const { store, host, guest } = pair();
   assert.notEqual(host.token, guest.token);
-  assert.throws(() => store.join(host.code, { name: '第三人' }), /坐满/);
+  assert.throws(() => store.join(host.code, { name: '第三人', inviteKey: host.room.inviteKey }), /坐满/);
   const snapshot = store.snapshot(host.code, host.token);
   assert.deepEqual(snapshot.players.map(player => player.name), ['蓝线', '红线']);
   assert(!JSON.stringify(snapshot).includes(host.token));
@@ -26,11 +26,11 @@ test('two seats only, unique credentials, and no credential in snapshots', () =>
 test('only host starts, and a second player is required', () => {
   const store = new RoomStore(); const host = store.create();
   assert.throws(() => store.start(host.code, host.token), /一位朋友/);
-  const guest = store.join(host.code);
+  const guest = store.join(host.code, { inviteKey: host.room.inviteKey });
   assert.throws(() => store.start(host.code, guest.token), { status: 403 });
   assert.equal(store.start(host.code, host.token).status, 'playing');
   assert.throws(() => store.start(host.code, host.token), { status: 409 });
-  assert.throws(() => store.join(host.code), /已经开始/);
+  assert.throws(() => store.join(host.code, { inviteKey: host.room.inviteKey }), /已经开始/);
 });
 
 test('server rejects acting out of turn and stale concurrent actions without mutation', () => {
@@ -114,7 +114,7 @@ test('HTTP serves game, rejects hidden/internal files, and enforces same-origin 
 test('HTTP API uses credentials and revision and reports current snapshot after conflict', async t => {
   const { base, post } = await httpFixture(t);
   const host = (await post('/api/rooms', { name: '甲' })).value;
-  const guest = (await post(`/api/rooms/${host.code}/join`, { name: '乙' })).value;
+  const guest = (await post(`/api/rooms/${host.code}/join`, { name: '乙', inviteKey: host.room.inviteKey })).value;
   assert.equal((await fetch(`${base}/api/rooms/${host.code}?token=wrong`)).status, 401);
   assert.equal((await post(`/api/rooms/${host.code}/start`, { token: guest.token })).status, 403);
   const started = (await post(`/api/rooms/${host.code}/start`, { token: host.token })).value;
@@ -129,7 +129,7 @@ test('HTTP API uses credentials and revision and reports current snapshot after 
 test('SSE streams synchronize host and guest with authoritative updates', async t => {
   const { base, post } = await httpFixture(t);
   const host = (await post('/api/rooms', { name: '甲' })).value;
-  const guest = (await post(`/api/rooms/${host.code}/join`, { name: '乙' })).value;
+  const guest = (await post(`/api/rooms/${host.code}/join`, { name: '乙', inviteKey: host.room.inviteKey })).value;
   const abortA = new AbortController(); const abortB = new AbortController();
   t.after(() => { abortA.abort(); abortB.abort(); });
   async function open(player, signal) {
