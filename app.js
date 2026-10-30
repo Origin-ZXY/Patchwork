@@ -1,7 +1,8 @@
 import {createGame,upgradeTimeBoard,getAvailablePatches,getPatch,transformShape,canPlace,getScore,getWinner,getFilledCount,applyAction,legalPlacements,INCOME_SPOTS,LEATHER_SPOTS,LEATHER_PATCH} from './engine.js';
 import {chooseAction} from './ai.js';
 import {esc,buttonIcon,clockIcon,patchSVG,boardSVG,previewSVG} from './art.js';
-import {RoomClient,hostedMultiplayerRedirect} from './room-client.js';
+import {RoomClient,hostedMultiplayerRedirect,readInvitation,invitationURL} from './room-client.js';
+import {RoomVerification} from './online-security.js';
 import {timeBoardSVG,normalizeTimeBoardSide,timeBoardSideName} from './time-board.js';
 
 const $=id=>document.getElementById(id);
@@ -10,6 +11,7 @@ const BOARD_SIDE_SAVE='patchwork-time-board-side-v1';
 const client=new RoomClient();
 let mode='ai',difficulty='normal',state,selected=null,rotation=0,flipped=false,anchor=null,hover=null;
 let aiTimer=null,toastTimer=null,modalKind='',busy=false,lastResult=-1,onlineRevision=null;
+let roomVerification=null;
 let tutorial=null;
 let marketLayoutKey='';
 let classicUpgrade='';
@@ -174,8 +176,9 @@ function scheduleAI() {
   },650);
 }
 
-function modal(kind,html) {modalKind=kind;$('modal').dataset.view=kind;$('modalContent').innerHTML=html;if(!$('modal').open)$('modal').showModal();}
-function closeModal(){$('modal').close();modalKind='';}
+function clearVerification(){roomVerification?.destroy();roomVerification=null;}
+function modal(kind,html) {clearVerification();modalKind=kind;$('modal').dataset.view=kind;$('modalContent').innerHTML=html;if(!$('modal').open)$('modal').showModal();}
+function closeModal(){clearVerification();$('modal').close();modalKind='';}
 function showOpponent() {
   const player=state.players[1-mainSeat()];
   modal('opponent',`<h2 class="modal-title">${esc(player.name)}的拼布</h2><p class="modal-intro">已缝 ${getFilledCount(player)} / 81 格 · 纽扣 ${player.buttons} · 收入 +${player.income} · 时间 ${player.time} / 53</p><div class="large-opponent-board modal-quilt">${boardSVG(player,{prefix:'opponent-detail'})}</div><div class="modal-footer"><span class="opponent-modal-score">${state.finished?'最终':'预计'}得分 ${signed(getScore(player))}</span><button class="primary-button" data-close>回到棋桌</button></div>`);
@@ -189,7 +192,7 @@ function showPatchDetail(id) {
   modal('patch',`<h2 class="modal-title">${esc(patch.name)}</h2><p class="modal-intro">市场中的第 ${i+1} 块${i<3?' · 目前可选':' · 后续布料，暂时不能购买'}，覆盖 ${patch.shape.length} 格。</p><div class="large-patch-preview">${patchSVG(patch,{width:320,height:240,prefix:'patch-detail'})}</div>${patchAttributes(patch)}<div class="modal-footer"><button class="outline-button" data-all-market>查看全部布料</button><button class="primary-button" data-close>回到棋桌</button></div>`);
 }
 function showNewGame() {
-  modal('new',`<p class="modal-eyebrow">A FRESH PIECE OF CANVAS</p><h2 class="modal-title">再铺开一张新布。</h2><p class="modal-intro">独自练练手，或者找一位朋友，把这段时光慢慢缝好。开始新局会替换当前练习存档。</p><div class="mode-options"><button class="mode-option" data-new="ai"><span>01</span><span><strong>和缝纫师切磋</strong><small>随时开始，和 AI 完成一局拼布对决</small></span><span>→</span></button><button class="mode-option" data-new="hotseat"><span>02</span><span><strong>坐在一起，轮流缝制</strong><small>共用一个屏幕，双人轮流操作</small></span><span>→</span></button><button class="mode-option" data-open-online><span>03</span><span><strong>邀请远方的朋友</strong><small>创建房间，用房间码加入对局</small></span><span>→</span></button></div><label class="difficulty-row">缝纫师的水平<select id="difficultySelect"><option value="easy" ${difficulty==='easy'?'selected':''}>轻松 · 初次拿针</option><option value="normal" ${difficulty==='normal'?'selected':''}>标准 · 熟练缝纫师</option><option value="hard" ${difficulty==='hard'?'selected':''}>挑战 · 精打细算</option></select></label>`);
+  modal('new',`<p class="modal-eyebrow">A FRESH PIECE OF CANVAS</p><h2 class="modal-title">再铺开一张新布。</h2><p class="modal-intro">独自练练手，或者找一位朋友，把这段时光慢慢缝好。开始新局会替换当前练习存档。</p><div class="mode-options"><button class="mode-option" data-new="ai"><span>01</span><span><strong>和缝纫师切磋</strong><small>随时开始，和 AI 完成一局拼布对决</small></span><span>→</span></button><button class="mode-option" data-new="hotseat"><span>02</span><span><strong>坐在一起，轮流缝制</strong><small>共用一个屏幕，双人轮流操作</small></span><span>→</span></button><button class="mode-option" data-open-online><span>03</span><span><strong>邀请远方的朋友</strong><small>创建房间，用安全邀请链接加入</small></span><span>→</span></button></div><label class="difficulty-row">缝纫师的水平<select id="difficultySelect"><option value="easy" ${difficulty==='easy'?'selected':''}>轻松 · 初次拿针</option><option value="normal" ${difficulty==='normal'?'selected':''}>标准 · 熟练缝纫师</option><option value="hard" ${difficulty==='hard'?'selected':''}>挑战 · 精打细算</option></select></label>`);
 }
 function startLocal(nextMode) {
   if(tutorial)exitTutorial();
@@ -214,13 +217,18 @@ function showOnline() {
   if(destination){location.assign(destination);return;}
   if(tutorial)exitTutorial();
   if(client.session){showRoom();return;}
-  const code=new URL(location.href).searchParams.get('room')??'';
-  modal('online',`<p class="modal-eyebrow">TWO NEEDLES, ONE TABLE</p><h2 class="modal-title">给朋友留个座位。</h2><p class="modal-intro">创建一张棋桌，把邀请链接发给朋友。也可以输入 6 位房间码，坐到对面。</p><div class="room-fields"><label>你在棋桌上的名字<input id="playerName" value="拼布玩家" maxlength="16" autocomplete="nickname"></label><button class="primary-button" data-create-room>创建房间</button></div><div class="field-divider">已经有朋友开好了房间？</div><div class="join-row"><input id="roomCodeInput" value="${esc(code)}" placeholder="6 位房间码" maxlength="6" aria-label="6 位房间码" autocapitalize="characters" spellcheck="false"><button class="outline-button" data-join-room>加入房间</button></div><p class="room-error" id="roomError" role="status"></p><p class="rules-source">把邀请链接发给朋友，双方入座后由房主开始。请保留当前窗口，刷新后可以继续对局。</p>`);
+  const {code,inviteKey}=readInvitation(location.href);
+  modal('online',`<p class="modal-eyebrow">TWO NEEDLES, ONE TABLE</p><h2 class="modal-title">给朋友留个座位。</h2><p class="modal-intro">创建棋桌后，把完整邀请链接发给朋友。邀请口令会自动随链接带上。</p><div class="room-fields"><label>你在棋桌上的名字<input id="playerName" value="拼布玩家" maxlength="16" autocomplete="nickname"></label><button class="primary-button" data-create-room disabled>创建房间</button></div><div class="field-divider">已经有朋友开好了房间？</div><div class="join-row"><input id="roomCodeInput" value="${esc(code)}" placeholder="6 位房间码" maxlength="6" aria-label="6 位房间码" autocapitalize="characters" spellcheck="false"><button class="outline-button" data-join-room disabled>加入房间</button></div><label class="invite-field">邀请链接或口令<input id="roomInviteInput" value="${esc(inviteKey)}" placeholder="粘贴房主发来的完整邀请链接或口令" autocomplete="off" spellcheck="false" maxlength="512"></label><div class="room-verification" id="roomVerification"></div><p class="verification-status" id="verificationStatus" role="status"></p><p class="room-error" id="roomError" role="status"></p><p class="rules-source">最多 20 张棋桌。未开始的房间 30 分钟后过期。完成验证后即可开房或加入，刷新可以回到原座位。</p>`);
+  roomVerification=new RoomVerification($('roomVerification'),(ready,message)=>{
+    if($('verificationStatus'))$('verificationStatus').textContent=message;
+    $('modalContent').querySelectorAll('[data-create-room],[data-join-room]').forEach(button=>button.disabled=busy||!ready);
+  });
+  roomVerification.mount();
 }
 function showRoom() {
   const room=client.room;if(!room)return;
   const host=client.session.seat===0,both=!!room.players[1];
-  modal('online',`<p class="modal-eyebrow">YOUR PATCHWORK ROOM</p><h2 class="modal-title">${room.status==='waiting'?'棋桌已经铺好。':'朋友已在棋桌对面。'}</h2><p class="modal-intro">房间码只用来找棋桌。每个窗口有各自的座位，刷新后可以回来继续。</p><div class="room-code">${esc(room.code)}</div><button class="outline-button" data-copy-invite style="width:100%">复制邀请链接</button><div class="seats">${room.players.map((p,i)=>`<div class="seat">${p?esc(p.name):'为朋友留的座位'}<small>${p?(i===client.session.seat?'你 · ':'')+(i===0?'房主':'朋友'):'等待加入'}</small></div>`).join('')}</div><p class="room-error" id="roomError" role="status"></p><div class="modal-footer"><button class="outline-button" data-leave-room>离开房间</button>${room.status==='waiting'?host?`<button class="primary-button" data-start-room ${both?'':'disabled'}>${both?'开始对局':'等待朋友加入'}</button>`:'<button class="primary-button" disabled>等待房主开始</button>':'<button class="primary-button" data-close>回到棋桌</button>'}</div>`);
+  modal('online',`<p class="modal-eyebrow">YOUR PATCHWORK ROOM</p><h2 class="modal-title">${room.status==='waiting'?'棋桌已经铺好。':'朋友已在棋桌对面。'}</h2><p class="modal-intro">朋友需要完整邀请链接才能入座。请保留各自的窗口，刷新后可以回来继续。</p><div class="room-code">${esc(room.code)}</div>${host&&room.status==='waiting'&&client.session.inviteKey?'<button class="outline-button" data-copy-invite style="width:100%">复制安全邀请链接</button>':''}<div class="seats">${room.players.map((p,i)=>`<div class="seat">${p?esc(p.name):'为朋友留的座位'}<small>${p?(i===client.session.seat?'你 · ':'')+(i===0?'房主':'朋友'):'等待加入'}</small></div>`).join('')}</div><p class="room-error" id="roomError" role="status"></p><div class="modal-footer"><button class="outline-button" data-leave-room>离开房间</button>${room.status==='waiting'?host?`<button class="primary-button" data-start-room ${both?'':'disabled'}>${both?'开始对局':'等待朋友加入'}</button>`:'<button class="primary-button" disabled>等待房主开始</button>':'<button class="primary-button" data-close>回到棋桌</button>'}</div>`);
 }
 async function roomOperation(operation) {
   if(busy)return;
@@ -229,7 +237,7 @@ async function roomOperation(operation) {
   try {
     await operation();
   }catch(error){failure=error.message;}
-  finally{busy=false;if(modalKind==='online'&&client.session)showRoom();else buttons.forEach(b=>b.disabled=false);render();if(failure){if($('roomError'))$('roomError').textContent=failure;else toast(failure);}}
+  finally{busy=false;if(modalKind==='online'&&client.session)showRoom();else{buttons.forEach(b=>b.disabled=false);roomVerification?.reset();}render();if(failure){if($('roomError'))$('roomError').textContent=failure;else toast(failure);}}
 }
 client.addEventListener('change',event=>{
   const room=event.detail;if(!room)return;
@@ -309,7 +317,7 @@ $('mainBoard').addEventListener('click',e=>{
 $('rotateBtn').onclick=()=>orient('rotate');$('flipBtn').onclick=()=>orient('flip');$('placeBtn').onclick=commit;
 $('advanceBtn').onclick=()=>act({type:'advance'});
 $('newGameBtn').onclick=showNewGame;$('onlineBtn').onclick=showOnline;$('tutorialBtn').onclick=startTutorial;$('rulesBtn').onclick=showRules;$('logBtn').onclick=showLog;$('exitTutorial').onclick=exitTutorial;$('tableNav').onclick=()=>{if($('modal').open)closeModal();};
-$('modal').addEventListener('close',()=>modalKind='');
+$('modal').addEventListener('close',()=>{clearVerification();modalKind='';});
 $('modal').addEventListener('click',event=>{if(event.target===$('modal')){const r=$('modal').getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closeModal();}});
 $('modalContent').addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button||button.disabled)return;
@@ -319,13 +327,13 @@ $('modalContent').addEventListener('click',event=>{
   else if(button.hasAttribute('data-all-market'))showMarket();
   else if(button.hasAttribute('data-market-pick')){const id=button.dataset.marketPick;closeModal();selectPatch(id);}
   else if(button.hasAttribute('data-start-tutorial'))startTutorial();
-  else if(button.hasAttribute('data-create-room')){const name=$('playerName').value;roomOperation(()=>client.create(name));}
-  else if(button.hasAttribute('data-join-room')){const name=$('playerName').value,code=$('roomCodeInput').value;roomOperation(()=>client.join(code,name));}
+  else if(button.hasAttribute('data-create-room')){const name=$('playerName').value;roomOperation(()=>client.create(name,roomVerification.take()));}
+  else if(button.hasAttribute('data-join-room')){const name=$('playerName').value,code=$('roomCodeInput').value,invite=$('roomInviteInput').value;roomOperation(()=>client.join(code,name,invite,roomVerification.take()));}
   else if(button.hasAttribute('data-start-room'))roomOperation(()=>client.start());
   else if(button.hasAttribute('data-rematch'))roomOperation(async()=>{lastResult=-1;await client.rematch();closeModal();});
   else if(button.hasAttribute('data-leave-room')){client.leave();onlineRevision=-1;loadLocal();clearSelection();closeModal();render();}
   else if(button.hasAttribute('data-copy-invite')){
-    const url=new URL(location.pathname,location.origin);url.searchParams.set('room',client.session.code);
+    const url=new URL(invitationURL(location.origin+location.pathname,client.session.code,client.session.inviteKey));
     navigator.clipboard.writeText(url.href).then(()=>toast('邀请链接已复制，发给你的朋友吧。')).catch(()=>{modal('invite',`<h2 class="modal-title">复制这段邀请链接</h2><input style="width:100%" readonly value="${esc(url.href)}" aria-label="邀请链接"><div class="modal-footer"><button class="primary-button" data-open-online>回到房间</button></div>`);});
   }
 });

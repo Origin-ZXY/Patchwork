@@ -21,3 +21,8 @@ dialog{background:#1e353e;color:#eee1c7;border:1px solid #a69770;border-radius:1
 .tutorial-bar{top:67px;bottom:auto}.tutorial-mode{padding-bottom:0}
 @media(max-width:650px){body.has-selection{padding-bottom:105px}.has-selection .action-panel{position:fixed;left:13px;right:13px;bottom:12px;z-index:50;padding:10px;background:#1d323cf5;border:1px solid #a28c60;border-radius:8px;box-shadow:0 4px 22px #071b24bb}.has-selection .action-panel .advance-button{padding:7px}.has-selection .action-panel .primary-button{min-height:34px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+/* Friend invitations and the managed verification widget. */
+.invite-field{display:grid;gap:8px;margin-top:14px;color:var(--muted);font-size:13px}
+.invite-field input{width:100%;min-width:0}
+.room-verification{margin-top:18px;min-height:0}
+.verification-status{font-size:12px;color:var(--muted);margin:8px 0 0;min-height:18px}

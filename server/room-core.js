@@ -4,6 +4,20 @@ export class RoomError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
 }
 const cleanName = value => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16) || '拼布玩家';
+export const INVITE_KEY_PATTERN = /^[a-f0-9]{48}$/i;
+export const newInviteKey = () => Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, '0')).join('');
+
+function equalSecret(left, right) {
+  if (typeof left !== 'string' || typeof right !== 'string' || left.length !== right.length) return false;
+  let difference = 0;
+  for (let i = 0; i < left.length; i++) difference |= left.charCodeAt(i) ^ right.charCodeAt(i);
+  return difference === 0;
+}
+
+export function upgradeRoomInvite(original, token) {
+  if (original.inviteKey || original.status !== 'waiting' || authenticateRoom(original, token) !== 0) return original;
+  return { ...structuredClone(original), schema: 2, inviteKey: newInviteKey() };
+}
 
 function requireCompatibleGame(room) {
   if (room.game && !isCompatibleGame(room.game)) throw new RoomError('此房间使用旧版棋盘规则，请创建新房间开始经典版对局。', 410);
@@ -26,16 +40,19 @@ export function snapshotRoom(room, token, { connected = [false, false] } = {}) {
     code: room.code, status: room.status, revision: room.revision,
     players: room.players.map((player, seat) => player ? { name: player.name, connected: Boolean(connected[seat]) } : null),
     game: room.game ? structuredClone(room.game) : null,
+    ...(token === room.players[0]?.token && room.status === 'waiting' && room.inviteKey ? { inviteKey: room.inviteKey } : {}),
   };
 }
 
 export function createRoomRecord({ code, name, token }) {
   if (!/^[A-Z2-9]{6}$/.test(code) || typeof token !== 'string' || token.length < 20) throw new RoomError('房间初始化失败', 500);
-  return { schema: 1, code, status: 'waiting', revision: 0, players: [{ name: cleanName(name), token }, null], game: null };
+  return { schema: 2, code, inviteKey: newInviteKey(), status: 'waiting', revision: 0, players: [{ name: cleanName(name), token }, null], game: null };
 }
 
-export function joinRoomRecord(original, { name, token }) {
+export function joinRoomRecord(original, { name, token, inviteKey }) {
   if (!original) throw new RoomError('没有找到这个房间，请检查房间码', 404);
+  if (!original.inviteKey) throw new RoomError('邀请链接已升级，请让房主刷新页面并重新发送邀请', 403);
+  if (!INVITE_KEY_PATTERN.test(inviteKey ?? '') || !equalSecret(original.inviteKey, inviteKey)) throw new RoomError('邀请口令无效，请使用房主发来的完整邀请链接', 403);
   const room = structuredClone(original);
   if (room.status !== 'waiting') throw new RoomError('对局已经开始，无法加入', 409);
   if (room.players[1]) throw new RoomError('房间已经坐满两位玩家', 409);

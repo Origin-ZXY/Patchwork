@@ -77,7 +77,7 @@ test('old custom-patch games cannot be played with the classic component catalog
 test('old online rooms fail with an actionable expiry response without changing their stored game', () => {
   const token='host-token-abcdefghijklmnop',guest='guest-token-abcdefghijklmnop';
   let room=createRoomRecord({code:'ABCDEF',token,name:'甲'});
-  room=joinRoomRecord(room,{token:guest,name:'乙'});
+  room=joinRoomRecord(room,{token:guest,name:'乙',inviteKey:room.inviteKey});
   room=startRoomRecord(room,token,{seed:7});
   room.game.version=1;delete room.game.patchSet;
   const original=structuredClone(room);
