@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RoomClient } from '../room-client.js';
+import { RoomClient, hostedMultiplayerRedirect, HOSTED_MULTIPLAYER_URL } from '../room-client.js';
 import { GAME_VERSION, PATCH_SET_ID, TIME_BOARD_ID } from '../engine.js';
 
 const SESSION_KEY = 'patchwork-room-v2';
@@ -9,6 +9,25 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a, b)
 const reply = (value, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => structuredClone(value) });
 const room = (code = 'AAAAAA', revision = 0) => ({ code, revision, status: 'playing', players: [{ name: '甲', connected: true }, { name: '乙', connected: true }], game: { version: GAME_VERSION, patchSet: PATCH_SET_ID, timeBoard: TIME_BOARD_ID, revision, current: 0, finished: false } });
 const credential = (snapshot, seat = 0) => ({ code: snapshot.code, token: `credential-${snapshot.code}-abcdefghijklmnop`, seat, room: snapshot });
+
+test('GitHub Pages online entry uses the hosted lobby and preserves normalized room codes', () => {
+  const destination = new URL(hostedMultiplayerRedirect('https://origin-zxy.github.io/Patchwork/?room=ab2c3d'));
+  assert.equal(destination.origin, new URL(HOSTED_MULTIPLAYER_URL).origin);
+  assert.equal(destination.searchParams.get('online'), '1');
+  assert.equal(destination.searchParams.get('room'), 'AB2C3D');
+  assert.equal(new URL(hostedMultiplayerRedirect('https://origin-zxy.github.io/Patchwork/index.html')).searchParams.get('online'), '1');
+});
+
+test('online routing keeps local and hosted sessions on their own service', () => {
+  for (const url of [HOSTED_MULTIPLAYER_URL, 'http://127.0.0.1:4174/?room=AB2C3D', 'https://origin-zxy.github.io/OtherGame/']) {
+    assert.equal(hostedMultiplayerRedirect(url), null);
+  }
+});
+
+test('online routing never forwards credentials, arbitrary destinations or invalid room codes', () => {
+  const destination = new URL(hostedMultiplayerRedirect('https://origin-zxy.github.io/Patchwork/?room=invalid&token=private&redirect=https://example.com'));
+  assert.deepEqual([...destination.searchParams], [['online', '1']]);
+});
 
 /** Browser network/timer doubles: no sockets, dependencies, or real polling waits. */
 function browser(t) {
