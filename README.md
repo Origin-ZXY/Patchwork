@@ -4,7 +4,7 @@
 
 ## 启动与试玩
 
-[公开试玩（人机 / 同屏双人）](https://origin-zxy.github.io/Patchwork/)。开房联机需要使用下述 Node.js 服务或 Cloudflare Worker 部署。
+[公开试玩（人机 / 同屏双人）](https://origin-zxy.github.io/Patchwork/) · [云端联机大厅](https://patchwork-stitch-table.zsj2957310036.chatgpt.site/?online=1)。GitHub Pages 中的联机入口会进入云端棋桌；房主创建房间后，把邀请链接或 6 位房间码发给有站点访问权限的朋友，即可加入并开始对局。
 
 安装 **Node.js 22.13 或更高版本**，在项目目录运行：
 
@@ -58,7 +58,8 @@ npm start
 
 | 部署方式 | 人机 / 同屏 | 跨设备联机 |
 | --- | --- | --- |
-| GitHub Pages 等静态托管 | 支持 | 需另行提供联机服务 |
+| 本仓库的 GitHub Pages | 支持 | 联机入口自动进入已部署的云端棋桌 |
+| 自行部署到其他静态托管 | 支持 | 需另行提供联机服务 |
 | `npm start` 的 Node 服务 | 支持 | 支持，设备需能访问该服务地址 |
 | Cloudflare Worker + D1 | 支持 | 支持公网开房、加入与断线恢复 |
 

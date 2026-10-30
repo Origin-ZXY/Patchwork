@@ -1,7 +1,7 @@
 import {createGame,upgradeTimeBoard,getAvailablePatches,getPatch,transformShape,canPlace,getScore,getWinner,getFilledCount,applyAction,legalPlacements,INCOME_SPOTS,LEATHER_SPOTS,LEATHER_PATCH} from './engine.js';
 import {chooseAction} from './ai.js';
 import {esc,buttonIcon,clockIcon,patchSVG,boardSVG,previewSVG} from './art.js';
-import {RoomClient} from './room-client.js';
+import {RoomClient,hostedMultiplayerRedirect} from './room-client.js';
 import {timeBoardSVG,normalizeTimeBoardSide,timeBoardSideName} from './time-board.js';
 
 const $=id=>document.getElementById(id);
@@ -210,10 +210,12 @@ function showResult() {
 }
 
 function showOnline() {
+  const destination=hostedMultiplayerRedirect(location.href);
+  if(destination){location.assign(destination);return;}
   if(tutorial)exitTutorial();
   if(client.session){showRoom();return;}
   const code=new URL(location.href).searchParams.get('room')??'';
-  modal('online',`<p class="modal-eyebrow">TWO NEEDLES, ONE TABLE</p><h2 class="modal-title">给朋友留个座位。</h2><p class="modal-intro">创建一张棋桌，把邀请链接发给朋友。也可以输入 6 位房间码，坐到对面。</p><div class="room-fields"><label>你在棋桌上的名字<input id="playerName" value="拼布玩家" maxlength="16" autocomplete="nickname"></label><button class="primary-button" data-create-room>创建房间</button></div><div class="field-divider">已经有朋友开好了房间？</div><div class="join-row"><input id="roomCodeInput" value="${esc(code)}" placeholder="6 位房间码" maxlength="6" aria-label="6 位房间码" autocapitalize="characters" spellcheck="false"><button class="outline-button" data-join-room>加入房间</button></div><p class="room-error" id="roomError" role="status"></p><p class="rules-source">本地运行时，同一网络的朋友使用终端显示的局域网地址；部署到云端后，可从邀请链接加入。</p>`);
+  modal('online',`<p class="modal-eyebrow">TWO NEEDLES, ONE TABLE</p><h2 class="modal-title">给朋友留个座位。</h2><p class="modal-intro">创建一张棋桌，把邀请链接发给朋友。也可以输入 6 位房间码，坐到对面。</p><div class="room-fields"><label>你在棋桌上的名字<input id="playerName" value="拼布玩家" maxlength="16" autocomplete="nickname"></label><button class="primary-button" data-create-room>创建房间</button></div><div class="field-divider">已经有朋友开好了房间？</div><div class="join-row"><input id="roomCodeInput" value="${esc(code)}" placeholder="6 位房间码" maxlength="6" aria-label="6 位房间码" autocapitalize="characters" spellcheck="false"><button class="outline-button" data-join-room>加入房间</button></div><p class="room-error" id="roomError" role="status"></p><p class="rules-source">把邀请链接发给朋友，双方入座后由房主开始。请保留当前窗口，刷新后可以继续对局。</p>`);
 }
 function showRoom() {
   const room=client.room;if(!room)return;
@@ -336,4 +338,8 @@ document.addEventListener('keydown',event=>{
 
 loadLocal();save();render();
 if(classicUpgrade)toast(classicUpgrade);
-client.restore().then(restored=>{if(!restored&&new URL(location.href).searchParams.has('room'))showOnline();});
+const entryParams=new URL(location.href).searchParams;
+const wantsOnline=entryParams.has('room')||entryParams.get('online')==='1';
+const hostedDestination=hostedMultiplayerRedirect(location.href);
+if(hostedDestination){if(wantsOnline)location.replace(hostedDestination);}
+else client.restore().then(restored=>{if(!restored&&wantsOnline)showOnline();});

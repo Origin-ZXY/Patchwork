@@ -1,6 +1,18 @@
 import { isCompatibleGame } from './engine.js';
 
 const SESSION_KEY = 'patchwork-room-v2';
+export const HOSTED_MULTIPLAYER_URL = 'https://patchwork-stitch-table.zsj2957310036.chatgpt.site/';
+
+/** Static GitHub Pages keeps local play; online play uses the deployed room service. */
+export function hostedMultiplayerRedirect(pageURL) {
+  const page = new URL(pageURL);
+  if (page.hostname !== 'origin-zxy.github.io' || !/^\/Patchwork(?:\/(?:index\.html)?)?$/i.test(page.pathname)) return null;
+  const destination = new URL(HOSTED_MULTIPLAYER_URL);
+  destination.searchParams.set('online', '1');
+  const code = (page.searchParams.get('room') ?? '').trim().toUpperCase();
+  if (/^[A-Z2-9]{6}$/.test(code)) destination.searchParams.set('room', code);
+  return destination.href;
+}
 
 /** The browser proposes actions; only the server can change an online game. */
 export class RoomClient extends EventTarget {
