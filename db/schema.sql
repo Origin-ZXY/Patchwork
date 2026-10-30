@@ -2,15 +2,20 @@ CREATE TABLE IF NOT EXISTS patchwork_rooms (
   code TEXT PRIMARY KEY NOT NULL,
   body TEXT NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
-  expires_at INTEGER NOT NULL
+  expires_at INTEGER NOT NULL,
+  creator_hash TEXT
 );
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS patchwork_rooms_expiry ON patchwork_rooms(expires_at);
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS patchwork_rooms_creator ON patchwork_rooms(creator_hash, expires_at);
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS patchwork_presence (
   room_code TEXT NOT NULL REFERENCES patchwork_rooms(code) ON DELETE CASCADE,
   seat INTEGER NOT NULL,
   last_seen INTEGER NOT NULL,
+  read_window INTEGER NOT NULL DEFAULT 0,
+  read_count INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY(room_code, seat)
 );
 --> statement-breakpoint
